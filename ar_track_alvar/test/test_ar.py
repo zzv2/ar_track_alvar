@@ -34,6 +34,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+import numpy
 import math
 import unittest
 
@@ -91,10 +92,13 @@ class TestArAlvarRos(unittest.TestCase):
                     continue
             # Compare each translation element (x, y, z) 
             for v_ret, v_expected in zip(trans, tf_expected[i][0]):
-                self.assertAlmostEqual(v_ret, v_expected, 2)
+                # Given that sigfig ignores the leading zero, we only compare the first sigfig.
+                numpy.testing.assert_approx_equal(
+                    v_ret, v_expected, significant=1)
             # Compare each orientation element (x, y, z, w) 
             for v_ret, v_expected in zip(rot, tf_expected[i][1]):
-                self.assertAlmostEqual(v_ret, v_expected, 2)
+                numpy.testing.assert_approx_equal(
+                    v_ret, v_expected, significant=1)
 
 if __name__ == '__main__':
     import rostest
