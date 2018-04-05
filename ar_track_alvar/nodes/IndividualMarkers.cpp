@@ -190,11 +190,11 @@ void drawArrow(gm::Point start, tf::Matrix3x3 mat, string frame, int color, int 
 
 int PlaneFitPoseImprovement(int id, const ARCloud &corners_3D, ARCloud::Ptr selected_points, const ARCloud &cloud, Pose &p){
 
-  ata::PlaneFitResult res = ata::fitPlane(selected_points);
+  // ata::PlaneFitResult res = ata::fitPlane(selected_points);
   gm::PoseStamped pose;
   pose.header.stamp = pcl_conversions::fromPCL(cloud.header).stamp;
   pose.header.frame_id = cloud.header.frame_id;
-  pose.pose.position = ata::centroid(*res.inliers);
+  pose.pose.position = ata::centroid(*selected_points);
 
   draw3dPoints(selected_points, cloud.header.frame_id, 1, id, 0.005);
 
@@ -246,23 +246,23 @@ int PlaneFitPoseImprovement(int id, const ARCloud &corners_3D, ARCloud::Ptr sele
   orient_points->points.push_back(corners_3D[i2]);
   draw3dPoints(orient_points, cloud.header.frame_id, 2, id+2000, 0.008);
 
-  int succ;
-  succ = ata::extractOrientation(res.coeffs, corners_3D[i1], corners_3D[i2], corners_3D[i3], corners_3D[i4], pose.pose.orientation);
-  if(succ < 0) return -1;
+  // int succ;
+  // succ = ata::extractOrientation(res.coeffs, corners_3D[i1], corners_3D[i2], corners_3D[i3], corners_3D[i4], pose.pose.orientation);
+  // if(succ < 0) return -1;
 
-  tf::Matrix3x3 mat;
-  succ = ata::extractFrame(res.coeffs, corners_3D[i1], corners_3D[i2], corners_3D[i3], corners_3D[i4], mat);
-  if(succ < 0) return -1;
+  // tf::Matrix3x3 mat;
+  // succ = ata::extractFrame(res.coeffs, corners_3D[i1], corners_3D[i2], corners_3D[i3], corners_3D[i4], mat);
+  // if(succ < 0) return -1;
 
-  drawArrow(pose.pose.position, mat, cloud.header.frame_id, 1, id);
+  // drawArrow(pose.pose.position, mat, cloud.header.frame_id, 1, id);
 
   p.translation[0] = pose.pose.position.x * 100.0;
   p.translation[1] = pose.pose.position.y * 100.0;
   p.translation[2] = pose.pose.position.z * 100.0;
-  p.quaternion[1] = pose.pose.orientation.x;
-  p.quaternion[2] = pose.pose.orientation.y;
-  p.quaternion[3] = pose.pose.orientation.z;
-  p.quaternion[0] = pose.pose.orientation.w;
+  // p.quaternion[1] = pose.pose.orientation.x;
+  // p.quaternion[2] = pose.pose.orientation.y;
+  // p.quaternion[3] = pose.pose.orientation.z;
+  // p.quaternion[0] = pose.pose.orientation.w;
 
   return 0;
 }
