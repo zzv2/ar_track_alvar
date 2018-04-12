@@ -190,11 +190,17 @@ void drawArrow(gm::Point start, tf::Matrix3x3 mat, string frame, int color, int 
 
 int PlaneFitPoseImprovement(int id, const ARCloud &corners_3D, ARCloud::Ptr selected_points, const ARCloud &cloud, Pose &p){
 
-  // ata::PlaneFitResult res = ata::fitPlane(selected_points);
   gm::PoseStamped pose;
   pose.header.stamp = pcl_conversions::fromPCL(cloud.header).stamp;
   pose.header.frame_id = cloud.header.frame_id;
-  pose.pose.position = ata::centroid(*selected_points);
+
+  if (selected_points->size() > 0) {
+    ata::PlaneFitResult res = ata::fitPlane(selected_points);
+    pose.pose.position = ata::centroid(*res.inliers);
+  }
+  else {
+    pose.pose.position = ata::centroid(*selected_points);
+  }
 
   draw3dPoints(selected_points, cloud.header.frame_id, 1, id, 0.005);
 
@@ -393,79 +399,81 @@ void getPointCloudCallback (const sensor_msgs::PointCloud2ConstPtr &msg)
       tf::Transform m (tf::Quaternion::getIdentity (), markerOrigin);
       tf::Transform markerPose = t * m; // marker pose in the camera frame
 
-	  //Publish the transform from the camera to the marker
-	  std::string markerFrame = "ar_marker_";
-	  std::stringstream out;
-	  out << id;
-	  std::string id_string = out.str();
-	  markerFrame += id_string;
-	  tf::StampedTransform camToMarker (t, image_msg->header.stamp, image_msg->header.frame_id, markerFrame.c_str());
-	  tf_broadcaster->sendTransform(camToMarker);
+    if(!isnan(p.translation[0]) && !isnan(p.translation[1]) && !isnan(p.translation[2])) {
+  	  //Publish the transform from the camera to the marker
+  	  std::string markerFrame = "ar_marker_";
+  	  std::stringstream out;
+  	  out << id;
+  	  std::string id_string = out.str();
+  	  markerFrame += id_string;
+  	  tf::StampedTransform camToMarker (t, image_msg->header.stamp, image_msg->header.frame_id, markerFrame.c_str());
+  	  tf_broadcaster->sendTransform(camToMarker);
 
-	  //Create the rviz visualization messages
-	  tf::poseTFToMsg (markerPose, rvizMarker_.pose);
-	  rvizMarker_.header.frame_id = image_msg->header.frame_id;
-	  rvizMarker_.header.stamp = image_msg->header.stamp;
-	  rvizMarker_.id = id;
+  	  //Create the rviz visualization messages
+  	  tf::poseTFToMsg (markerPose, rvizMarker_.pose);
+  	  rvizMarker_.header.frame_id = image_msg->header.frame_id;
+  	  rvizMarker_.header.stamp = image_msg->header.stamp;
+  	  rvizMarker_.id = id;
 
-	  rvizMarker_.scale.x = 1.0 * marker_size/100.0;
-	  rvizMarker_.scale.y = 1.0 * marker_size/100.0;
-	  rvizMarker_.scale.z = 0.2 * marker_size/100.0;
-	  rvizMarker_.ns = "basic_shapes";
-	  rvizMarker_.type = visualization_msgs::Marker::CUBE;
-	  rvizMarker_.action = visualization_msgs::Marker::ADD;
-	  switch (id)
-	    {
-	    case 0:
-	      rvizMarker_.color.r = 0.0f;
-	      rvizMarker_.color.g = 0.0f;
-	      rvizMarker_.color.b = 1.0f;
-	      rvizMarker_.color.a = 1.0;
-	      break;
-	    case 1:
-	      rvizMarker_.color.r = 1.0f;
-	      rvizMarker_.color.g = 0.0f;
-	      rvizMarker_.color.b = 0.0f;
-	      rvizMarker_.color.a = 1.0;
-	      break;
-	    case 2:
-	      rvizMarker_.color.r = 0.0f;
-	      rvizMarker_.color.g = 1.0f;
-	      rvizMarker_.color.b = 0.0f;
-	      rvizMarker_.color.a = 1.0;
-	      break;
-	    case 3:
-	      rvizMarker_.color.r = 0.0f;
-	      rvizMarker_.color.g = 0.5f;
-	      rvizMarker_.color.b = 0.5f;
-	      rvizMarker_.color.a = 1.0;
-	      break;
-	    case 4:
-	      rvizMarker_.color.r = 0.5f;
-	      rvizMarker_.color.g = 0.5f;
-	      rvizMarker_.color.b = 0.0;
-	      rvizMarker_.color.a = 1.0;
-	      break;
-	    default:
-	      rvizMarker_.color.r = 0.5f;
-	      rvizMarker_.color.g = 0.0f;
-	      rvizMarker_.color.b = 0.5f;
-	      rvizMarker_.color.a = 1.0;
-	      break;
-	    }
-	  rvizMarker_.lifetime = ros::Duration (1.0);
-	  rvizMarkerPub_.publish (rvizMarker_);
+  	  rvizMarker_.scale.x = 1.0 * marker_size/100.0;
+  	  rvizMarker_.scale.y = 1.0 * marker_size/100.0;
+  	  rvizMarker_.scale.z = 0.2 * marker_size/100.0;
+  	  rvizMarker_.ns = "basic_shapes";
+  	  rvizMarker_.type = visualization_msgs::Marker::CUBE;
+  	  rvizMarker_.action = visualization_msgs::Marker::ADD;
+  	  switch (id)
+  	    {
+  	    case 0:
+  	      rvizMarker_.color.r = 0.0f;
+  	      rvizMarker_.color.g = 0.0f;
+  	      rvizMarker_.color.b = 1.0f;
+  	      rvizMarker_.color.a = 1.0;
+  	      break;
+  	    case 1:
+  	      rvizMarker_.color.r = 1.0f;
+  	      rvizMarker_.color.g = 0.0f;
+  	      rvizMarker_.color.b = 0.0f;
+  	      rvizMarker_.color.a = 1.0;
+  	      break;
+  	    case 2:
+  	      rvizMarker_.color.r = 0.0f;
+  	      rvizMarker_.color.g = 1.0f;
+  	      rvizMarker_.color.b = 0.0f;
+  	      rvizMarker_.color.a = 1.0;
+  	      break;
+  	    case 3:
+  	      rvizMarker_.color.r = 0.0f;
+  	      rvizMarker_.color.g = 0.5f;
+  	      rvizMarker_.color.b = 0.5f;
+  	      rvizMarker_.color.a = 1.0;
+  	      break;
+  	    case 4:
+  	      rvizMarker_.color.r = 0.5f;
+  	      rvizMarker_.color.g = 0.5f;
+  	      rvizMarker_.color.b = 0.0;
+  	      rvizMarker_.color.a = 1.0;
+  	      break;
+  	    default:
+  	      rvizMarker_.color.r = 0.5f;
+  	      rvizMarker_.color.g = 0.0f;
+  	      rvizMarker_.color.b = 0.5f;
+  	      rvizMarker_.color.a = 1.0;
+  	      break;
+  	    }
+  	  rvizMarker_.lifetime = ros::Duration (1.0);
+  	  rvizMarkerPub_.publish (rvizMarker_);
 
-	  //Get the pose of the tag in the camera frame, then the output frame (usually torso)
-	  tf::Transform tagPoseOutput = CamToOutput * markerPose;
+  	  //Get the pose of the tag in the camera frame, then the output frame (usually torso)
+  	  tf::Transform tagPoseOutput = CamToOutput * markerPose;
 
-	  //Create the pose marker messages
-	  ar_track_alvar_msgs::AlvarMarker ar_pose_marker;
-	  tf::poseTFToMsg (tagPoseOutput, ar_pose_marker.pose.pose);
-	  ar_pose_marker.header.frame_id = output_frame;
-	  ar_pose_marker.header.stamp = image_msg->header.stamp;
-	  ar_pose_marker.id = id;
-	  arPoseMarkers_.markers.push_back (ar_pose_marker);
+  	  //Create the pose marker messages
+  	  ar_track_alvar_msgs::AlvarMarker ar_pose_marker;
+  	  tf::poseTFToMsg (tagPoseOutput, ar_pose_marker.pose.pose);
+  	  ar_pose_marker.header.frame_id = output_frame;
+  	  ar_pose_marker.header.stamp = image_msg->header.stamp;
+  	  ar_pose_marker.id = id;
+  	  arPoseMarkers_.markers.push_back (ar_pose_marker);
+    }
 	}
       arPoseMarkers_.header.stamp = image_msg->header.stamp;
       arMarkerPub_.publish (arPoseMarkers_);

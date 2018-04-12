@@ -50,7 +50,7 @@ namespace ar_track_alvar
 
   // Distance threshold for plane fitting: how far are points
   // allowed to be off the plane?
-  const double distance_threshold_ = 0.005;
+  const double distance_threshold_ = 0.01;
 
   PlaneFitResult fitPlane (ARCloud::ConstPtr cloud)
   {

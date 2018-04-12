@@ -292,11 +292,17 @@ int InferCorners(const ARCloud &cloud, MultiMarkerBundle &master, ARCloud &bund_
 
 int PlaneFitPoseImprovement(int id, const ARCloud &corners_3D, ARCloud::Ptr selected_points, const ARCloud &cloud, Pose &p){
 
-  // ata::PlaneFitResult res = ata::fitPlane(selected_points);
   gm::PoseStamped pose;
   pose.header.stamp = pcl_conversions::fromPCL(cloud.header).stamp;
   pose.header.frame_id = cloud.header.frame_id;
-  pose.pose.position = ata::centroid(*selected_points);
+
+  if (selected_points->size() > 0) {
+    ata::PlaneFitResult res = ata::fitPlane(selected_points);
+    pose.pose.position = ata::centroid(*res.inliers);
+  }
+  else {
+    pose.pose.position = ata::centroid(*selected_points);
+  }
 
   draw3dPoints(selected_points, cloud.header.frame_id, 1, id, 0.005);
 	  
