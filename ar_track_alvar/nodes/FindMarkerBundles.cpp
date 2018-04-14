@@ -262,7 +262,7 @@ int InferCorners(const ARCloud &cloud, MultiMarkerBundle &master, ARCloud &bund_
             
             try{
                 tf_listener->waitForTransform(cloud.header.frame_id, marker_frame, ros::Time(0), ros::Duration(0.1));
-                tf_listener->transformPoint(cloud.header.frame_id, p, output_p);			
+                tf_listener->transformPoint(cloud.header.frame_id, p, output_p);
             }
             catch (tf::TransformException ex){
                 ROS_ERROR("ERROR InferCorners: %s",ex.what());
@@ -290,87 +290,95 @@ int InferCorners(const ARCloud &cloud, MultiMarkerBundle &master, ARCloud &bund_
 }
 
 
-int PlaneFitPoseImprovement(int id, const ARCloud &corners_3D, ARCloud::Ptr selected_points, const ARCloud &cloud, Pose &p){
+int PlaneFitPoseImprovement(int id, const ARCloud &corners_3D, ARCloud::Ptr selected_points, const ARCloud &cloud, Pose &p, bool use_ori){
 
   gm::PoseStamped pose;
   pose.header.stamp = pcl_conversions::fromPCL(cloud.header).stamp;
   pose.header.frame_id = cloud.header.frame_id;
 
+  ata::PlaneFitResult res;
+  bool plane_set = false;
   if (selected_points->size() > 0) {
-    ata::PlaneFitResult res = ata::fitPlane(selected_points);
+    res = ata::fitPlane(selected_points);
     pose.pose.position = ata::centroid(*res.inliers);
+    plane_set = true;
   }
   else {
     pose.pose.position = ata::centroid(*selected_points);
   }
 
-  draw3dPoints(selected_points, cloud.header.frame_id, 1, id, 0.005);
-	  
- //  //Get 2 points that point forward in marker x direction   
- //  int i1,i2;
- //  if(isnan(corners_3D[0].x) || isnan(corners_3D[0].y) || isnan(corners_3D[0].z) || 
- //     isnan(corners_3D[3].x) || isnan(corners_3D[3].y) || isnan(corners_3D[3].z))
- //    {
- //      if(isnan(corners_3D[1].x) || isnan(corners_3D[1].y) || isnan(corners_3D[1].z) || 
-	//  isnan(corners_3D[2].x) || isnan(corners_3D[2].y) || isnan(corners_3D[2].z))
-	// {
-	//   return -1;
-	// }
- //      else{
-	// i1 = 1;
-	// i2 = 2;
- //      }	
- //    }
- //  else{
- //    i1 = 0;
- //    i2 = 3;
- //  }
-
- //  //Get 2 points the point forward in marker y direction   
- //  int i3,i4;
- //  if(isnan(corners_3D[0].x) || isnan(corners_3D[0].y) || isnan(corners_3D[0].z) || 
- //     isnan(corners_3D[1].x) || isnan(corners_3D[1].y) || isnan(corners_3D[1].z))
- //    {   
- //      if(isnan(corners_3D[3].x) || isnan(corners_3D[3].y) || isnan(corners_3D[3].z) || 
-	//  isnan(corners_3D[2].x) || isnan(corners_3D[2].y) || isnan(corners_3D[2].z))
-	// {   
-	//   return -1;
-	// }
- //      else{
-	// i3 = 2;
-	// i4 = 3;
- //      }	
- //    }
- //  else{
- //    i3 = 1;
- //    i4 = 0;
- //  }
-   
- //  ARCloud::Ptr orient_points(new ARCloud());
- //  orient_points->points.push_back(corners_3D[i1]);
- //  draw3dPoints(orient_points, cloud.header.frame_id, 3, id+1000, 0.008);
-      
- //  orient_points->clear();
- //  orient_points->points.push_back(corners_3D[i2]);
- //  draw3dPoints(orient_points, cloud.header.frame_id, 2, id+2000, 0.008);
- 
-  // int succ;
-  // succ = ata::extractOrientation(res.coeffs, corners_3D[i1], corners_3D[i2], corners_3D[i3], corners_3D[i4], pose.pose.orientation);
-  // if(succ < 0) return -1;
-
-  // tf::Matrix3x3 mat;
-  // succ = ata::extractFrame(res.coeffs, corners_3D[i1], corners_3D[i2], corners_3D[i3], corners_3D[i4], mat);
-  // if(succ < 0) return -1;
-
-  // drawArrow(pose.pose.position, mat, cloud.header.frame_id, 1, id);
-
   p.translation[0] = pose.pose.position.x * 100.0;
   p.translation[1] = pose.pose.position.y * 100.0;
   p.translation[2] = pose.pose.position.z * 100.0;
-  // p.quaternion[1] = pose.pose.orientation.x;
-  // p.quaternion[2] = pose.pose.orientation.y;
-  // p.quaternion[3] = pose.pose.orientation.z;
-  // p.quaternion[0] = pose.pose.orientation.w; 
+
+  draw3dPoints(selected_points, cloud.header.frame_id, 1, id, 0.005);
+	  
+  if (use_ori) {
+    //Get 2 points that point forward in marker x direction   
+    int i1,i2;
+    if(isnan(corners_3D[0].x) || isnan(corners_3D[0].y) || isnan(corners_3D[0].z) || 
+       isnan(corners_3D[3].x) || isnan(corners_3D[3].y) || isnan(corners_3D[3].z))
+      {
+        if(isnan(corners_3D[1].x) || isnan(corners_3D[1].y) || isnan(corners_3D[1].z) || 
+  	 isnan(corners_3D[2].x) || isnan(corners_3D[2].y) || isnan(corners_3D[2].z))
+  	{
+  	  return -1;
+  	}
+        else{
+  	i1 = 1;
+  	i2 = 2;
+        }	
+      }
+    else{
+      i1 = 0;
+      i2 = 3;
+    }
+
+    //Get 2 points the point forward in marker y direction   
+    int i3,i4;
+    if(isnan(corners_3D[0].x) || isnan(corners_3D[0].y) || isnan(corners_3D[0].z) || 
+       isnan(corners_3D[1].x) || isnan(corners_3D[1].y) || isnan(corners_3D[1].z))
+      {   
+        if(isnan(corners_3D[3].x) || isnan(corners_3D[3].y) || isnan(corners_3D[3].z) || 
+  	 isnan(corners_3D[2].x) || isnan(corners_3D[2].y) || isnan(corners_3D[2].z))
+  	{   
+  	  return -1;
+  	}
+        else{
+  	i3 = 2;
+  	i4 = 3;
+        }	
+      }
+    else{
+      i3 = 1;
+      i4 = 0;
+    }
+     
+    ARCloud::Ptr orient_points(new ARCloud());
+    orient_points->points.push_back(corners_3D[i1]);
+    draw3dPoints(orient_points, cloud.header.frame_id, 3, id+1000, 0.008);
+        
+    orient_points->clear();
+    orient_points->points.push_back(corners_3D[i2]);
+    draw3dPoints(orient_points, cloud.header.frame_id, 2, id+2000, 0.008);
+
+    if (plane_set) {
+      int succ;
+      succ = ata::extractOrientation(res.coeffs, corners_3D[i1], corners_3D[i2], corners_3D[i3], corners_3D[i4], pose.pose.orientation);
+      if(succ < 0) return -1;
+
+      tf::Matrix3x3 mat;
+      succ = ata::extractFrame(res.coeffs, corners_3D[i1], corners_3D[i2], corners_3D[i3], corners_3D[i4], mat);
+      if(succ < 0) return -1;
+
+      drawArrow(pose.pose.position, mat, cloud.header.frame_id, 1, id);
+    }
+
+    p.quaternion[1] = pose.pose.orientation.x;
+    p.quaternion[2] = pose.pose.orientation.y;
+    p.quaternion[3] = pose.pose.orientation.z;
+    p.quaternion[0] = pose.pose.orientation.w; 
+  }
 
   return 0;
 }
@@ -434,11 +442,11 @@ void GetMultiMarkerPoses(IplImage *image, ARCloud &cloud) {
 
 	  //Check if we have spotted a master tag
 	  int master_ind = -1;
-	  for(int j=0; j<n_bundles; j++){
-	    if(id == master_id[j])
-	      master_visible[j] = true; 
-	    master_ind = j;
-	  }
+	  // for(int j=0; j<n_bundles; j++){
+	  //   if(id == master_id[j])
+	  //     master_visible[j] = true; 
+	  //   master_ind = j;
+	  // }
 
 	  //Mark the bundle that marker belongs to as "seen"
 	  int bundle_ind = -1;
@@ -458,7 +466,7 @@ void GetMultiMarkerPoses(IplImage *image, ARCloud &cloud) {
 	  ARCloud::Ptr selected_points = ata::filterCloud(cloud, pixels);
 
 	  //Use the kinect data to find a plane and pose for the marker
-	  int ret = PlaneFitPoseImprovement(i, m->ros_corners_3D, selected_points, cloud, m->pose);
+	  int ret = PlaneFitPoseImprovement(i, m->ros_corners_3D, selected_points, cloud, m->pose, false);
             
 	  //If the plane fit fails...
 	  if(ret < 0){
@@ -483,7 +491,7 @@ void GetMultiMarkerPoses(IplImage *image, ARCloud &cloud) {
             //if(master_visible[i] == false){
                 if(InferCorners(cloud, *(multi_marker_bundles[i]), inferred_corners) >= 0){
                     ARCloud::Ptr inferred_cloud(new ARCloud(inferred_corners));
-                    PlaneFitPoseImprovement(i+5000, inferred_corners, inferred_cloud, cloud, bundlePoses[i]);
+                    PlaneFitPoseImprovement(i+5000, inferred_corners, inferred_cloud, cloud, bundlePoses[i], true);
                 }
             //}
             //If master is visible, use it directly instead of inferring pose
@@ -507,7 +515,7 @@ void GetMultiMarkerPoses(IplImage *image, ARCloud &cloud) {
 
 
 // Given the pose of a marker, builds the appropriate ROS messages for later publishing 
-void makeMarkerMsgs(int type, int id, Pose &p, sensor_msgs::ImageConstPtr image_msg, tf::StampedTransform &CamToOutput, visualization_msgs::Marker *rvizMarker, ar_track_alvar_msgs::AlvarMarker *ar_pose_marker, int confidence){
+void makeMarkerMsgs(int type, int id, Pose &p, sensor_msgs::ImageConstPtr image_msg, tf::StampedTransform &CamToOutput, visualization_msgs::Marker *rvizMarker, ar_track_alvar_msgs::AlvarMarker *ar_pose_marker, int confidence, bool sendTransform){
   double px,py,pz,qx,qy,qz,qw;
 	
   px = p.translation[0]/100.0;
@@ -528,13 +536,15 @@ void makeMarkerMsgs(int type, int id, Pose &p, sensor_msgs::ImageConstPtr image_
   tf::Transform markerPose = t * m;
 
   //Publish the cam to marker transform for each marker
-  std::string markerFrame = "ar_marker_";
-  std::stringstream out;
-  out << id;
-  std::string id_string = out.str();
-  markerFrame += id_string;
-  tf::StampedTransform camToMarker (t, image_msg->header.stamp, image_msg->header.frame_id, markerFrame.c_str());
-  tf_broadcaster->sendTransform(camToMarker);
+  if (sendTransform) {
+    std::string markerFrame = "ar_marker_";
+    std::stringstream out;
+    out << id;
+    std::string id_string = out.str();
+    markerFrame += id_string;
+    tf::StampedTransform camToMarker (t, image_msg->header.stamp, image_msg->header.frame_id, markerFrame.c_str());
+    tf_broadcaster->sendTransform(camToMarker);
+  }
 
   //Create the rviz visualization message
   tf::poseTFToMsg (markerPose, rvizMarker->pose);
@@ -647,13 +657,15 @@ void getPointCloudCallback (const sensor_msgs::PointCloud2ConstPtr &msg)
 
 	    // Don't draw if it is a master tag...we do this later, a bit differently
 	    bool should_draw = true;
-	    for(int j=0; j<n_bundles; j++){
-	      if(id == master_id[j]) should_draw = false;
-	    }
+	    // for(int j=0; j<n_bundles; j++){
+	    //   if(id == master_id[j]) should_draw = false;
+	    // }
 	    if(should_draw && (*(marker_detector.markers))[i].valid){
 	      Pose p = (*(marker_detector.markers))[i].pose;
-	      makeMarkerMsgs(VISIBLE_MARKER, id, p, image_msg, CamToOutput, &rvizMarker, &ar_pose_marker, 1);
-	      rvizMarkerPub_.publish (rvizMarker);
+        if(!isnan(p.translation[0]) && !isnan(p.translation[1]) && !isnan(p.translation[2])) {
+  	      makeMarkerMsgs(VISIBLE_MARKER, id, p, image_msg, CamToOutput, &rvizMarker, &ar_pose_marker, 1, true);
+  	      rvizMarkerPub_.publish (rvizMarker);
+        }
 	    }
 	  }
 	}
@@ -662,9 +674,12 @@ void getPointCloudCallback (const sensor_msgs::PointCloud2ConstPtr &msg)
       for(int i=0; i<n_bundles; i++)
 	{
 	  if(bundles_seen[i] > 0){
-	    makeMarkerMsgs(MAIN_MARKER, master_id[i], bundlePoses[i], image_msg, CamToOutput, &rvizMarker, &ar_pose_marker, bundles_seen[i]);
-	    rvizMarkerPub_.publish (rvizMarker);
-	    arPoseMarkers_.markers.push_back (ar_pose_marker);
+      Pose p = bundlePoses[i];
+      if(!isnan(p.translation[0]) && !isnan(p.translation[1]) && !isnan(p.translation[2])) {
+  	    makeMarkerMsgs(MAIN_MARKER, master_id[i], p, image_msg, CamToOutput, &rvizMarker, &ar_pose_marker, bundles_seen[i], false);
+  	    rvizMarkerPub_.publish (rvizMarker);
+  	    arPoseMarkers_.markers.push_back (ar_pose_marker);
+      }
 	  }
 	}
 
@@ -819,6 +834,7 @@ int main(int argc, char *argv[])
       multi_marker_bundles[i]->Load(argv[i + n_args_before_list], FILE_FORMAT_XML);
       master_id[i] = multi_marker_bundles[i]->getMasterId();
       bundle_indices[i] = multi_marker_bundles[i]->getIndices();
+      bundle_indices[i].push_back(multi_marker_bundles[i]->getMasterId());
       calcAndSaveMasterCoords(*(multi_marker_bundles[i]));
     }
     else{
