@@ -86,10 +86,9 @@ Camera *cam;
 cv_bridge::CvImagePtr cv_ptr_;
 image_transport::Subscriber cam_sub_;
 ros::Subscriber cloud_sub_;
-ros::Publisher arMarkerPub_;
-ros::Publisher rvizMarkerPub_;
-ros::Publisher rvizMarkerPub2_;
-ar_track_alvar_msgs::AlvarMarkers arPoseMarkers_;
+ros::Publisher arMarkerPub_, arMarkerIndivPub_;
+ros::Publisher rvizMarkerPub_, rvizMarkerPub2_;
+ar_track_alvar_msgs::AlvarMarkers arPoseMarkers_, arPoseIndivMarkers_;
 tf::TransformListener *tf_listener;
 tf::TransformBroadcaster *tf_broadcaster;
 MarkerDetector<MarkerData> marker_detector;
@@ -587,20 +586,15 @@ void makeMarkerMsgs(int type, int id, Pose &p, sensor_msgs::ImageConstPtr image_
 
   rvizMarker->lifetime = ros::Duration (0.1);
 
-  // Only publish the pose of the master tag in each bundle, since that's all we really care about aside from visualization 
-  if(type==MAIN_MARKER){
-    //Take the pose of the tag in the camera frame and convert to the output frame (usually torso_lift_link for the PR2)
-    tf::Transform tagPoseOutput = CamToOutput * markerPose;
+  //Take the pose of the tag in the camera frame and convert to the output frame (usually torso_lift_link for the PR2)
+  tf::Transform tagPoseOutput = CamToOutput * markerPose;
 
-    //Create the pose marker message
-    tf::poseTFToMsg (tagPoseOutput, ar_pose_marker->pose.pose);
-    ar_pose_marker->header.frame_id = output_frame;
-    ar_pose_marker->header.stamp = image_msg->header.stamp;
-    ar_pose_marker->id = id;
-    ar_pose_marker->confidence = confidence;
-  }
-  else
-    ar_pose_marker = NULL;
+  //Create the pose marker message
+  tf::poseTFToMsg (tagPoseOutput, ar_pose_marker->pose.pose);
+  ar_pose_marker->header.frame_id = output_frame;
+  ar_pose_marker->header.stamp = image_msg->header.stamp;
+  ar_pose_marker->id = id;
+  ar_pose_marker->confidence = confidence;
 }
 
 
@@ -627,6 +621,7 @@ void getPointCloudCallback (const sensor_msgs::PointCloud2ConstPtr &msg)
       visualization_msgs::Marker rvizMarker;
       ar_track_alvar_msgs::AlvarMarker ar_pose_marker;
       arPoseMarkers_.markers.clear ();
+      arPoseIndivMarkers_.markers.clear ();
 
       //Convert cloud to PCL 
       ARCloud cloud;
@@ -665,6 +660,7 @@ void getPointCloudCallback (const sensor_msgs::PointCloud2ConstPtr &msg)
         if(!isnan(p.translation[0]) && !isnan(p.translation[1]) && !isnan(p.translation[2])) {
   	      makeMarkerMsgs(VISIBLE_MARKER, id, p, image_msg, CamToOutput, &rvizMarker, &ar_pose_marker, 1, true);
   	      rvizMarkerPub_.publish (rvizMarker);
+          arPoseIndivMarkers_.markers.push_back (ar_pose_marker);
         }
 	    }
 	  }
@@ -685,6 +681,7 @@ void getPointCloudCallback (const sensor_msgs::PointCloud2ConstPtr &msg)
 
       //Publish the marker messages
       arMarkerPub_.publish (arPoseMarkers_);
+      arMarkerIndivPub_.publish (arPoseIndivMarkers_);
     }
     catch (cv_bridge::Exception& e){
       ROS_ERROR ("ar_track_alvar: Image error: %s", image_msg->encoding.c_str ());
@@ -848,6 +845,7 @@ int main(int argc, char *argv[])
   tf_listener = new tf::TransformListener(n);
   tf_broadcaster = new tf::TransformBroadcaster();
   arMarkerPub_ = n.advertise < ar_track_alvar_msgs::AlvarMarkers > ("ar_pose_marker", 0);
+  arMarkerIndivPub_ = n.advertise < ar_track_alvar_msgs::AlvarMarkers > ("ar_pose_indiv_marker", 0);
   rvizMarkerPub_ = n.advertise < visualization_msgs::Marker > ("visualization_marker", 0);
   rvizMarkerPub2_ = n.advertise < visualization_msgs::Marker > ("ARmarker_points", 0);
 	
