@@ -97,8 +97,10 @@ class TestArAlvarRos(unittest.TestCase):
                     v_ret, v_expected, significant=1)
             # Compare each orientation element (x, y, z, w) 
             for v_ret, v_expected in zip(rot, tf_expected[i][1]):
-                numpy.testing.assert_approx_equal(
-                    v_ret, v_expected, significant=1)
+                numpy.testing.assert_allclose(
+                    v_ret, v_expected, atol=0.01)
+                # numpy.testing.assert_approx_equal(
+                #     v_ret, v_expected, significant=1)
 
 if __name__ == '__main__':
     import rostest
